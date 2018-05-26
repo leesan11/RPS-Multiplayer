@@ -10,8 +10,6 @@ var config = {
   var database=firebase.database();
 
 //===============================================================================================================
-
-//disable new round button at the beginning
 $("#newRound").attr("disabled","disabled");
 $(".button-choice").attr("disabled","disabled");
 
@@ -20,7 +18,10 @@ while(name==""||name==="null"){
     name=prompt("What is your name?");
 }
 var thisPlayer=name;
-var otherPlayer=name;
+var thisPlayerReady=false;
+var thisPlayerChoice=false;
+var thisPlayerPlayAgain=false;
+var otherPlayer;
 var thisPlayerScore=0;
 //store player name and other player name as objects/children; give each player a ready=true and choice =false
 database.ref(thisPlayer).set({
@@ -31,89 +32,83 @@ database.ref(thisPlayer).set({
     score:0
 });
 
-
+//thisPlayer and other Player is now set
+var numPlayers=0;
+database.ref().on("child_added",function(snapshot){
+    numPlayers++;
+    if(numPlayers==2){
+        for (var names in snapshot.val()){
+            if(names!=thisPlayer){
+                otherPlayer=names;
+                //enable choice buttons
+                $(".button-choice").removeAttr("disabled");
+            }
+        }
+    }
+});
 
 //record choice RPS & record state of player
 $("#userChoice").on("click",".button-choice",function(){
+    thisPlayerChoice = $(this).attr("id");
     database.ref(thisPlayer).update({
         choice:$(this).attr("id"),
         ready:true,
         playAgain:false
     });
 });
+//if both are ready
+database.ref(otherPlayer).child("ready").isEqualTo(true).on("value",function(snapshot){
+    var s=snapshot.val();
 
-//if both players are ready run RPS logic
-database.ref().on("value",function(snapshot){
-    s=snapshot.val();
-    //get other player name
-    for (var names in s){
-        if(names!=thisPlayer){
-            otherPlayer=names;
-            $(".button-choice").removeAttr("disabled");
-            $("#waitingForName").text(thisPlayer+ " vs "+otherPlayer);
-            database.ref(otherPlayer+"/chat").once("value",function(snape){
-                if(snape.val()){
-                $("#messages").append(otherPlayer+": "+snape.val()+"<br>");
-                };
-            });
-            
-        }
-    }
-    //if both players are ready run logic
-    if(s[thisPlayer].ready && s[otherPlayer].ready){
-        if((s[thisPlayer].choice=="rock"&&s[otherPlayer].choice=="paper")||(s[thisPlayer].choice=="scissor"&&s[otherPlayer].choice=="rock")||(s[thisPlayer].choice=="paper"&&s[otherPlayer].choice=="scissor")){
+    if(s.ready&&thisPlayerReady){
+        //run logic
+        if((thisPlayerChoice=="rock"&&s.choice=="paper")||(thisPlayerChoice=="scissor"&&s.choice=="rock")||(thisPlayerChoice=="paper"&&s.choice=="scissor")){
             $("#resultMessage").text("you lose");
         }
-        else if(s[thisPlayer].choice==s[otherPlayer].choice){
+        else if(thisPlayerChoice==s.choice){
             $("#resultMessage").text("tie");
         }
         else{
             $("#resultMessage").text("you win");
             thisPlayerScore+=1;
         }
-        //change both players to ready false
+        //change both players to ready false and choice to false. Update score.
         database.ref(thisPlayer).update({
             choice:false,
             ready:false,
             score:thisPlayerScore
         });
-        //update score
-        
         //disable buttons
         $(".button-choice").attr("disabled","disabled");
         $("#newRound").removeAttr("disabled");
-    }
-    else if((!s[thisPlayer].playAgain && s[otherPlayer].playAgain && !s[otherPlayer].choice && !s[thisPlayer].choice)){
+    };
+});
+
+//replay button
+$("#newRound").on("click",function(){
+    database.ref(thisPlayer).update({
+        choice:false,
+        ready:false,
+        playAgain:true,
+    });
+});
+
+//check for playAgain
+
+database.ref(otherPlayer).child("playAgain").isEqualTo(true).on("value",function(snapshot){
+    s=snapshot.val();
+    if(!thisPlayerPlayAgain){
         $("#resultMessage").text("Other Player wants to play again");
-        
     }
-    else if(s[thisPlayer].playAgain && s[otherPlayer].playAgain){
+    else if(thisPlayerPlayAgain){
         $("#resultMessage").text("Next Round has started");
         $(".button-choice").removeAttr("disabled");
         //disable buttons
         $("#newRound").attr("disabled","disabled");
     }
-    
-});
-
-//update score
-database.ref().on("value",function(scoresnap){
-    
-    console.log(scoresnap.val());
-    $("#score").text(thisPlayerScore +" : "+ scoresnap.val()[otherPlayer].score);
 })
- 
-//replay button
-$("#newRound").on("click",function(){
-    database.ref(thisPlayer).set({
-        choice:false,
-        ready:false,
-        playAgain:true,
-        chat:false,
-        score:thisPlayerScore
-    });
-});
-//send chat message to firebase
+
+//send chat message
 $("#submitChat").on("click",function(){
     database.ref(thisPlayer).update({
         chat:$("#chatInput").val()
@@ -122,7 +117,10 @@ $("#submitChat").on("click",function(){
     $("#chatInput").val("");
 });
 
-//show chat timeout is necessary to run this synchronously
-
-
-
+//check for chat messages from other player
+database.ref(otherPlayer).child("chat").on("value",function(snapshot){
+    var s=snapshot.val();
+    if(s.chat){
+        $("#messages").append(s.chat+": "+$("#chatInput").val()+"<br>");
+    }
+})

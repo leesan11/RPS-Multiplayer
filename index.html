@@ -6,40 +6,47 @@
     <title>Page Title</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel='stylesheet prefetch' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0/css/bootstrap.css'>
-    
+    <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
-  <div>
-    <h1 id="players"></h1>
-    <h2 id="waitingForName">Waiting For Name of Other Player</h2>
-  </div>
+
+  <header class="jumbotron">
+    <h1>Rock Paper Scissors</h1>
+  </header>
+
+  <section>
+      <h1 id="players"></h1>
+      <h2 id="waitingForName">Waiting for other player name...</h2>
+  </section>
+
+  <main>
 
   <div id="userChoice">
-    <button class="button-choice" id="rock">rock</button>
-    <button class="button-choice" id="paper">paper</button>
-    <button class="button-choice" id="scissor">scissor</button>
+    <button class="button-choice" id="rock"><img src="./assets/images/rock.png" alt="rock"></button>
+    <button class="button-choice" id="paper"><img src="./assets/images/paper.png" alt="paper"></button>
+    <button class="button-choice" id="scissor"><img src="./assets/images/scissor.png" alt="scissor"></button>
   </div>
 
 
   <div id="result">
-    <h1 id="resultMessage">Choose When Ready</h1>
-    <button id="newRound">New Round</button>
+    <h1 id="resultMessage">Choose R/P/S When Ready</h1>
+    <button class="btn btn-primary" id="newRound">Play Again</button>
   </div>
   
   <div>
     <h1 id="score"></h1>
   </div>
 
+</main>
 
-  <div id="chat">
+  <section id="chat">
     <p id="messages"></p>
     <input id="chatInput">
-    <button id="submitChat">Submit</button>
-  </div>
-  
+    <button class="btn btn-primary" id="submitChat">Submit</button>
+  </section>
 
 <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase.js"></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
-<script src="./assets/javascript/main.js"></script>
+<script src="./assets/javascript/testing.js"></script>
 </body>
 </html>
