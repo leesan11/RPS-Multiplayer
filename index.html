@@ -11,23 +11,29 @@
 <body>
   <div>
     <h1 id="players"></h1>
+    <h2 id="waitingForName">Waiting For Name of Other Player</h2>
   </div>
 
   <div id="userChoice">
-  <button class="button-choice" id="rock">rock</button>
-  <button class="button-choice" id="paper">paper</button>
-  <button class="button-choice" id="scissors">scissors</button>
+    <button class="button-choice" id="rock">rock</button>
+    <button class="button-choice" id="paper">paper</button>
+    <button class="button-choice" id="scissor">scissor</button>
   </div>
 
 
   <div id="result">
-    <h1 id="resultMessage">Result: </h1>
+    <h1 id="resultMessage">Choose When Ready</h1>
+    <button id="newRound">New Round</button>
   </div>
-  <button id="newRound">New Round</button>
+  
+  <div>
+    <h1 id="score"></h1>
+  </div>
+
 
   <div id="chat">
     <p id="messages"></p>
-    <input id="chatBox">
+    <input id="chatInput">
     <button id="submitChat">Submit</button>
   </div>
   
