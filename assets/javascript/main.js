@@ -10,8 +10,6 @@ var config = {
   var database=firebase.database();
 
 //===============================================================================================================
-
-//disable new round button at the beginning
 $("#newRound").attr("disabled","disabled");
 $(".button-choice").attr("disabled","disabled");
 
@@ -20,22 +18,48 @@ while(name==""||name==="null"){
     name=prompt("What is your name?");
 }
 var thisPlayer=name;
-var otherPlayer=name;
+var thisPlayerReady=false;
+var thisPlayerChoice=false;
+var thisPlayerPlayAgain=false;
+var otherPlayer;
 var thisPlayerScore=0;
-//store player name and other player name as objects/children; give each player a ready=true and choice =false
-database.ref(thisPlayer).set({
+
+database.ref("/players/"+name).set({
     choice:false,
     ready:false,
     playAgain:false,
     chat:false,
     score:0
 });
+var done=0;
+//count number of players online //.val() is the object that contains all
+database.ref("players").on("value",function(snapshot){
+    if(Object.keys(snapshot.val()).length==2&&done==0){
+        for (var names in snapshot.val()){
+            if(names!=thisPlayer){
+                otherPlayer=names;
+                $(".button-choice").removeAttr("disabled");
+                $("#waitingForName").text(thisPlayer+ " vs "+otherPlayer);
+                database.ref(otherPlayer+"/chat").once("value",function(snape){
+                    if(snape.val()){
+                    $("#messages").append(otherPlayer+": "+snape.val()+"<br>");
+                    };
+                });
+                
+            }
+        }
+        
+        done=1;
+        console.log("done: "+done)
+        run();
+    }
+    
+});
 
-
-
-//record choice RPS & record state of player
+function run(){
+    //record choice RPS & record state of player
 $("#userChoice").on("click",".button-choice",function(){
-    database.ref(thisPlayer).update({
+    database.ref("players/"+thisPlayer).update({
         choice:$(this).attr("id"),
         ready:true,
         playAgain:false
@@ -43,24 +67,11 @@ $("#userChoice").on("click",".button-choice",function(){
 });
 
 //if both players are ready run RPS logic
-database.ref().on("value",function(snapshot){
+database.ref("players").on("value",function(snapshot){
     s=snapshot.val();
-    //get other player name
-    for (var names in s){
-        if(names!=thisPlayer){
-            otherPlayer=names;
-            $(".button-choice").removeAttr("disabled");
-            $("#waitingForName").text(thisPlayer+ " vs "+otherPlayer);
-            database.ref(otherPlayer+"/chat").once("value",function(snape){
-                if(snape.val()){
-                $("#messages").append(otherPlayer+": "+snape.val()+"<br>");
-                };
-            });
-            
-        }
-    }
+    
     //if both players are ready run logic
-    if(s[thisPlayer].ready && s[otherPlayer].ready){
+    if(s[thisPlayer].choice && s[otherPlayer].choice){
         if((s[thisPlayer].choice=="rock"&&s[otherPlayer].choice=="paper")||(s[thisPlayer].choice=="scissor"&&s[otherPlayer].choice=="rock")||(s[thisPlayer].choice=="paper"&&s[otherPlayer].choice=="scissor")){
             $("#resultMessage").text("you lose");
         }
@@ -72,7 +83,7 @@ database.ref().on("value",function(snapshot){
             thisPlayerScore+=1;
         }
         //change both players to ready false
-        database.ref(thisPlayer).update({
+        database.ref("players/"+thisPlayer).update({
             choice:false,
             ready:false,
             score:thisPlayerScore
@@ -97,15 +108,14 @@ database.ref().on("value",function(snapshot){
 });
 
 //update score
-database.ref().on("value",function(scoresnap){
+database.ref("players").on("value",function(scoresnap){
     
-    console.log(scoresnap.val());
     $("#score").text(thisPlayerScore +" : "+ scoresnap.val()[otherPlayer].score);
 })
- 
+
 //replay button
 $("#newRound").on("click",function(){
-    database.ref(thisPlayer).set({
+    database.ref("players/"+thisPlayer).set({
         choice:false,
         ready:false,
         playAgain:true,
@@ -115,14 +125,31 @@ $("#newRound").on("click",function(){
 });
 //send chat message to firebase
 $("#submitChat").on("click",function(){
-    database.ref(thisPlayer).update({
+    database.ref("players/"+thisPlayer).update({
         chat:$("#chatInput").val()
     });
     $("#messages").append(thisPlayer+": "+$("#chatInput").val()+"<br>");
     $("#chatInput").val("");
 });
+//update chat messages
+database.ref("players/"+otherPlayer+"/chat").on("value",function(snapchat){
+    if(snapchat.val()){
+    $("#messages").append(otherPlayer+": "+snapchat.val()+"<br>");
+    }
+})
 
-//show chat timeout is necessary to run this synchronously
+
+
+
+}
+
+
+
+
+
+
+
+
 
 
 

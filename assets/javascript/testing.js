@@ -23,104 +23,133 @@ var thisPlayerChoice=false;
 var thisPlayerPlayAgain=false;
 var otherPlayer;
 var thisPlayerScore=0;
-//store player name and other player name as objects/children; give each player a ready=true and choice =false
-database.ref(thisPlayer).set({
+
+database.ref("/players/"+name).set({
     choice:false,
     ready:false,
     playAgain:false,
     chat:false,
     score:0
 });
-
-//thisPlayer and other Player is now set
-var numPlayers=0;
-database.ref().on("child_added",function(snapshot){
-    numPlayers++;
-    if(numPlayers==2){
+var done=0;
+//count number of players online //.val() is the object that contains all
+database.ref("players").on("value",function(snapshot){
+    if(Object.keys(snapshot.val()).length==2&&done==0){
         for (var names in snapshot.val()){
             if(names!=thisPlayer){
                 otherPlayer=names;
-                //enable choice buttons
                 $(".button-choice").removeAttr("disabled");
+                $("#waitingForName").text(thisPlayer+ " vs "+otherPlayer);
+                database.ref(otherPlayer+"/chat").once("value",function(snape){
+                    if(snape.val()){
+                    $("#messages").append(otherPlayer+": "+snape.val()+"<br>");
+                    };
+                });
+                
             }
         }
+        
+        done=1;
+        console.log("done: "+done)
+        run();
     }
+    
 });
 
-//record choice RPS & record state of player
+function run(){
+    //record choice RPS & record state of player
 $("#userChoice").on("click",".button-choice",function(){
-    thisPlayerChoice = $(this).attr("id");
-    database.ref(thisPlayer).update({
+    database.ref("players/"+thisPlayer).update({
         choice:$(this).attr("id"),
         ready:true,
         playAgain:false
     });
 });
-//if both are ready
-database.ref(otherPlayer).child("ready").isEqualTo(true).on("value",function(snapshot){
-    var s=snapshot.val();
 
-    if(s.ready&&thisPlayerReady){
-        //run logic
-        if((thisPlayerChoice=="rock"&&s.choice=="paper")||(thisPlayerChoice=="scissor"&&s.choice=="rock")||(thisPlayerChoice=="paper"&&s.choice=="scissor")){
+//if both players are ready run RPS logic
+database.ref("players").on("value",function(snapshot){
+    s=snapshot.val();
+    
+    //if both players are ready run logic
+    if(s[thisPlayer].choice && s[otherPlayer].choice){
+        if((s[thisPlayer].choice=="rock"&&s[otherPlayer].choice=="paper")||(s[thisPlayer].choice=="scissor"&&s[otherPlayer].choice=="rock")||(s[thisPlayer].choice=="paper"&&s[otherPlayer].choice=="scissor")){
             $("#resultMessage").text("you lose");
         }
-        else if(thisPlayerChoice==s.choice){
+        else if(s[thisPlayer].choice==s[otherPlayer].choice){
             $("#resultMessage").text("tie");
         }
         else{
             $("#resultMessage").text("you win");
             thisPlayerScore+=1;
         }
-        //change both players to ready false and choice to false. Update score.
-        database.ref(thisPlayer).update({
+        //change both players to ready false
+        database.ref("players/"+thisPlayer).update({
             choice:false,
             ready:false,
             score:thisPlayerScore
         });
+        //update score
+        
         //disable buttons
         $(".button-choice").attr("disabled","disabled");
         $("#newRound").removeAttr("disabled");
-    };
-});
-
-//replay button
-$("#newRound").on("click",function(){
-    database.ref(thisPlayer).update({
-        choice:false,
-        ready:false,
-        playAgain:true,
-    });
-});
-
-//check for playAgain
-
-database.ref(otherPlayer).child("playAgain").isEqualTo(true).on("value",function(snapshot){
-    s=snapshot.val();
-    if(!thisPlayerPlayAgain){
-        $("#resultMessage").text("Other Player wants to play again");
     }
-    else if(thisPlayerPlayAgain){
+    else if((!s[thisPlayer].playAgain && s[otherPlayer].playAgain && !s[otherPlayer].choice && !s[thisPlayer].choice)){
+        $("#resultMessage").text("Other Player wants to play again");
+        
+    }
+    else if(s[thisPlayer].playAgain && s[otherPlayer].playAgain){
         $("#resultMessage").text("Next Round has started");
         $(".button-choice").removeAttr("disabled");
         //disable buttons
         $("#newRound").attr("disabled","disabled");
     }
+    
+});
+
+//update score
+database.ref("players").on("value",function(scoresnap){
+    
+    $("#score").text(thisPlayerScore +" : "+ scoresnap.val()[otherPlayer].score);
 })
 
-//send chat message
+//replay button
+$("#newRound").on("click",function(){
+    database.ref("players/"+thisPlayer).set({
+        choice:false,
+        ready:false,
+        playAgain:true,
+        chat:false,
+        score:thisPlayerScore
+    });
+});
+//send chat message to firebase
 $("#submitChat").on("click",function(){
-    database.ref(thisPlayer).update({
+    database.ref("players/"+thisPlayer).update({
         chat:$("#chatInput").val()
     });
     $("#messages").append(thisPlayer+": "+$("#chatInput").val()+"<br>");
     $("#chatInput").val("");
 });
-
-//check for chat messages from other player
-database.ref(otherPlayer).child("chat").on("value",function(snapshot){
-    var s=snapshot.val();
-    if(s.chat){
-        $("#messages").append(s.chat+": "+$("#chatInput").val()+"<br>");
+//update chat messages
+database.ref("players/"+otherPlayer+"/chat").on("value",function(snapchat){
+    if(snapchat.val()){
+    $("#messages").append(otherPlayer+": "+snapchat.val()+"<br>");
     }
 })
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
