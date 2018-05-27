@@ -9,6 +9,32 @@ var config = {
   firebase.initializeApp(config);
   var database=firebase.database();
 
+
+//===================================================clear object on connect
+
+var connectionsRef = database.ref("/connections");
+var connectedRef = database.ref(".info/connected");
+connectedRef.on("value", function(snap) {
+  if (snap.val()) {
+    var con = connectionsRef.push(true);
+    con.onDisconnect().remove();
+  }
+});
+
+connectionsRef.on("value", function(snap) {
+  if(snap.numChildren()==1){
+      database.ref("players").set({});
+      database.ref("/players/"+name).set({
+        choice:false,
+        ready:false,
+        playAgain:false,
+        chat:false,
+        score:0
+    });
+  }
+});
+
+
 //===============================================================================================================
 $("#newRound").attr("disabled","disabled");
 $(".button-choice").attr("disabled","disabled");
@@ -17,13 +43,12 @@ var name=prompt("What is your name?");
 while(name==""||name==="null"){
     name=prompt("What is your name?");
 }
-var thisPlayer=name;
+var player."name"=name;
 var thisPlayerReady=false;
 var thisPlayerChoice=false;
 var thisPlayerPlayAgain=false;
 var otherPlayer;
 var thisPlayerScore=0;
-
 database.ref("/players/"+name).set({
     choice:false,
     ready:false,
@@ -31,6 +56,7 @@ database.ref("/players/"+name).set({
     chat:false,
     score:0
 });
+
 var done=0;
 //count number of players online //.val() is the object that contains all
 database.ref("players").on("value",function(snapshot){
@@ -137,10 +163,6 @@ database.ref("players/"+otherPlayer+"/chat").on("value",function(snapchat){
     $("#messages").append(otherPlayer+": "+snapchat.val()+"<br>");
     }
 })
-
-
-
-
 }
 
 
