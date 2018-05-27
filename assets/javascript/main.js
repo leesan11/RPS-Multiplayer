@@ -43,7 +43,7 @@ var name=prompt("What is your name?");
 while(name==""||name==="null"){
     name=prompt("What is your name?");
 }
-var player."name"=name;
+var thisPlayer=name;
 var thisPlayerReady=false;
 var thisPlayerChoice=false;
 var thisPlayerPlayAgain=false;
